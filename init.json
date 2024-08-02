@@ -1,0 +1,150 @@
+{
+    "accounts": [
+        {
+            "id":1,
+            "email" : "superadmin@buaa.edu.cn",
+            "password" : "arimakana",
+            "username" : "superadmin",
+            "agencyName" : "管理员",
+            "type" : 3,
+            "register_id": 1
+        },
+        {
+            "id":2,
+            "email" : "admin001@buaa.edu.cn",
+            "password" : "12345678z",
+            "username" : "admin001",
+            "agencyName" : "管理员",
+            "type" : 2,
+            "register_id": 1
+        },
+        {
+            "id":3,
+            "email" : "user001@buaa.edu.cn",
+            "password" : "12345678z",
+            "username" : "user001",
+            "agencyName" : "实验室测试用户",
+            "type" : 1,
+            "register_id": 1
+        },
+        {
+            "id":4,
+            "email" : "user002@buaa.edu.cn",
+            "password" : "12345678z",
+            "username" : "user002",
+            "agencyName" : "实验室测试用户",
+            "type" : 1,
+            "register_id": 2
+        }
+    ],
+
+    "datasets" : [
+        {
+            "id": 1,
+            "title" : "测试数据集一",
+            "abstract" : "这是一个测试数据集,用于测试下载接口的功能",
+            "url" : "/mnt/lustre-client/hipo/datasets/tools/trace",
+            "param_infos":[
+                {
+                    "name":"event_file",
+                    "param_index":1,
+                    "is_chosen_by_user":true,
+                    "param_value_options":[
+                        {
+                            "name":"event_file_option1",
+                            "value":"event_file_option1",
+                            "is_default":true
+                        },
+                        {
+                            "name":"event_file_option2",
+                            "value":"event_file_option2",
+                            "is_default":false
+                        },
+                        {
+                            "name":"event_file_option3",
+                            "value":"event_file_option3",
+                            "is_default":false
+                        },
+                        {
+                            "name":"event_file_option4",
+                            "value":"event_file_option4",
+                            "is_default":false
+                        }
+                    ]
+                },
+                {
+                    "name":"line_info_dump",
+                    "param_index":2,
+                    "is_chosen_by_user":true,
+                    "param_value_options":[
+                        {
+                            "name":"line_info_dump_option1",
+                            "value":"line_info_dump_option1",
+                            "is_default":true
+                        }
+                    ]
+                },
+                {
+                    "name":"input",
+                    "param_index":3,
+                    "is_chosen_by_user":false,
+                    "param_value_options":[
+                        {
+                            "name":"input_option1",
+                            "value":"input_option1",
+                            "is_default":true
+                        }
+                    ]
+                },
+                {
+                    "name":"output",
+                    "param_index":4,
+                    "is_chosen_by_user":false,
+                    "param_value_options":[
+                        {
+                            "name":"output_option1",
+                            "value":"output_option1",
+                            "is_default":true
+                        }
+                    ]
+                },
+                {
+                    "name":"time_offset",
+                    "param_index":5,
+                    "is_chosen_by_user":true,
+                    "param_value_options":[
+                        {
+                            "name":"time_offset_option1",
+                            "value":"time_offset_option1",
+                            "is_default":true
+                        }
+                    ]
+                },
+                {
+                    "name":"interval_length",
+                    "param_index":6,
+                    "is_chosen_by_user":true,
+                    "param_value_options":[
+                        {
+                            "name":"interval_length_option1",
+                            "value":"interval_length_option1",
+                            "is_default":true
+                        }
+                    ]
+                },
+                {
+                    "name":"number_of_events",
+                    "param_index":7,
+                    "is_chosen_by_user":true,
+                    "param_value_options":[
+                        {
+                            "name":"number_of_events_option1",
+                            "value":"number_of_events_option1",
+                            "is_default":true
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

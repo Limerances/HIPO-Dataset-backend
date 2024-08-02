@@ -1,0 +1,27 @@
+# 忽略所有 __pycache__ 目录
+**/__pycache__/
+
+# 忽略所有 .pyc, .pyo, .pyd 文件
+*.pyc
+*.pyo
+*.pyd
+
+# 忽略环境文件夹
+env/
+
+# 下载测试文件夹
+/temp/**
+
+# 忽略配置和日志文件
+*.status
+*.pid
+
+.vscode/
+# 忽略编译文件
+*.o
+*.so
+*.a
+*.out
+# 忽略构建目录
+build/
+dist/

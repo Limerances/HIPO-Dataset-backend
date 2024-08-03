@@ -15,6 +15,7 @@ env/
 # 忽略配置和日志文件
 *.status
 *.pid
+*.log
 
 .vscode/
 # 忽略编译文件

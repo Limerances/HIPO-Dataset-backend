@@ -8,8 +8,8 @@ bp = Blueprint('test', __name__, url_prefix='/test')
 @bp.route('/basetest', methods=["GET","POST"])
 def test():
     try:
-        data = request.json
-        header = request.headers
+        # data = request.json
+        # header = request.headers
         # print(data)
         # print(header)
         # print(header.get("Token"))

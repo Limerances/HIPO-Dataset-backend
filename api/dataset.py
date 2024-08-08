@@ -6,6 +6,8 @@ from threading import Thread
 import subprocess
 import shlex
 import datetime
+import os
+import json
 
 bp = Blueprint('dataset', __name__, url_prefix='/dataset')
 
@@ -325,8 +327,8 @@ def downloadDataset():
         return convert(result)
 
 
-@bp.route('/getManageList', methods=["POST"])
-def getManageList():
+@bp.route('/getDownloadManageList', methods=["POST"])
+def getDownloadManageList():
     if request.method == 'POST':
         data = request.json
         header = request.headers
@@ -374,6 +376,8 @@ def getManageList():
                                     "apply_time": dataset_download_part.apply_time,
                                     "generate_time": dataset_download_part.generate_time,
                                     "is_active": dataset_download_part.is_active,
+                                    "username": dataset_download_part.account.username,
+                                    "email": dataset_download_part.account.email,
                                     "param_value_list": param_value_list,
                                 })
                             result = { "errno": ErrnoType.success, "message": "获取成功" }
@@ -463,3 +467,240 @@ def deleteDownloadPart():
     else:
         result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
         return convert(result)
+    
+@bp.route('/getManageList', methods=["POST"])
+def getManageList():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    type = UserType(token_data['type'])
+                    if type != UserType.super_admin and type != UserType.admin:
+                        result = { "errno": ErrnoType.faliure, "message": "权限不足" }
+                    else:
+                        datasets = Dataset.query.filter_by().all()
+                        if datasets == None:
+                            result = { "errno": ErrnoType.info, "message": "不存在数据集" }
+                        else:
+                            in_data = []
+                            for dataset in datasets:
+                                param_info_list = []
+                                # for param_info in dataset.param_infos:
+                                #将选项按param_index排序，并且只返回用户可选的参数
+                                for param_info in ParamInfo.query.filter_by(is_active=True,dataset_id=dataset.id,is_chosen_by_user=True)\
+                                    .order_by(ParamInfo.param_index).all():
+                                    #只返回用户可选的参数
+                                    # param_value_option_list = []
+                                    # for param_value_option in param_info.param_value_options:
+                                    # 将is_default == True的选项放在最前面,其他按原序
+                                    # for param_value_option in sorted(param_info.param_value_options, key=lambda x: 0 if x.is_default else 1):
+                                    #     param_value_option_list.append({
+                                    #         "name": param_value_option.name,
+                                    #         "value": param_value_option.value,
+                                    #         "is_default": param_value_option.is_default,
+                                    #     })
+                                    param_info_list.append({
+                                        "name": param_info.name,
+                                        "param_index": param_info.param_index,
+                                        # "param_value_option": param_value_option_list,
+                                    })
+                                in_data.append({
+                                    "id": dataset.id,
+                                    "title": dataset.title,
+                                    "abstract": dataset.abstract,
+                                    "is_active": dataset.is_active,
+                                    "param_info": param_info_list,
+                                })
+                            result = { "errno": ErrnoType.success, "message": "获取成功" }
+                            result["data"] = in_data
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return convert(result)
+    
+    
+@bp.route('/updateDatasetInfo', methods=["POST"])
+def updateDatasetInfo():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    type = UserType(token_data['type'])
+                    if type != UserType.super_admin and type != UserType.admin:
+                        result = { "errno": ErrnoType.faliure, "message": "权限不足" }
+                    else:
+                        if(data['id'] == None or data['id'] == '' or data['is_active'] == None or data['is_active'] == '' or
+                           (data['is_active'] != True and data['is_active'] != False)):
+                            result = { "errno": ErrnoType.faliure, "message": "参数错误" }
+                        else:
+                            dataset_id = data['id']
+                            dataset = Dataset.query.filter_by(id=dataset_id).first()
+                            if dataset == None:
+                                result = { "errno": ErrnoType.info, "message": "数据集不存在" }
+                            else:
+                                dataset.is_active = data['is_active']
+                                db.session.commit()
+                                result = { "errno": ErrnoType.success, "message": "修改成功" }
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return convert(result)
+    
+@bp.route('/deleteDataset', methods=["POST"])
+def deleteDataset():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    type = UserType(token_data['type'])
+                    if type != UserType.super_admin:
+                        result = { "errno": ErrnoType.faliure, "message": "权限不足" }
+                    else:
+                        dataset_id = data['id']
+                        dataset = Dataset.query.filter_by(id=dataset_id).first()
+                        if dataset == None:
+                            result = { "errno": ErrnoType.info, "message": "数据集不存在" }
+                        else:
+                            
+                            deleteList = [dataset]
+                            for param_info in dataset.param_infos:
+                                deleteList.append(param_info)
+                                for param_value_option in param_info.param_value_options:
+                                    deleteList.append(param_value_option)
+                            for dataset_download_part in dataset.dataset_download_parts:
+                                deleteList.append(dataset_download_part)
+                                for param_value in dataset_download_part.param_values:
+                                    deleteList.append(param_value)
+                            try:
+                                for item in deleteList:
+                                    db.session.delete(item)
+                                db.session.commit()
+                                result = { "errno": ErrnoType.success, "message": "删除成功" }
+                            except:
+                                db.session.rollback()
+                                result = { "errno": ErrnoType.faliure, "message": "删除失败" }
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return convert(result)
+    
+@bp.route('/createDataset', methods=["POST"])
+def createDataset():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    type = UserType(token_data['type'])
+                    if type != UserType.super_admin and type != UserType.admin:
+                        result = { "errno": ErrnoType.faliure, "message": "权限不足" }
+                    else:
+                        if(data['jsontext'] == None or data['jsontext'] == ''):
+                            result = { "errno": ErrnoType.faliure, "message": "参数错误" }
+                        else:
+                            # 新建一个json文件，放在temp文件夹下，将data['jsontext']写入这个json文件，文件名调用generate_secure_random_string获得
+                            filename = generate_secure_random_string()
+                            filepath = "temp/" + filename + "_" + str(id) + ".json"
+           
+                            try:
+                                with open(filepath, "w") as file:
+                                    file.write(data['jsontext'])
+                                addDatasetbyJsonFile(filepath)
+                                result = { "errno": ErrnoType.success, "message": "创建成功" }
+                            except:
+                                result = { "errno": ErrnoType.faliure, "message": "创建失败，JSON格式或参数存在问题" }
+                            
+                            #如果有filepath，则删除json文件
+                            if os.path.exists(filepath):
+                                os.remove(filepath)
+                                                        
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return
+    
+def addDatasetbyJsonFile(filepath):
+    app = Flask(__name__)
+    app.config.from_object(settings.Configs)
+    db.init_app(app)
+    with app.app_context():
+        with open(filepath,'r') as file:
+            data = json.load(file)
+            for dataset in data["datasets"]:
+                ds = Dataset(
+                    title=dataset["title"],
+                    abstract=dataset["abstract"],
+                    url=dataset["url"]
+                )
+                db.session.add(ds)
+                db.session.flush()
+                for param_info in dataset["param_infos"]:
+                    pi = ParamInfo(
+                        name=param_info["name"],
+                        param_index=param_info["param_index"],
+                        dataset_id=ds.id,
+                        is_chosen_by_user=param_info["is_chosen_by_user"]
+                    )
+                    db.session.add(pi)
+                    db.session.flush()
+                    for param_value_option in param_info["param_value_options"]:
+                        pvo = ParamValueOption(
+                            name=param_value_option["name"],
+                            value=param_value_option["value"],
+                            is_default=param_value_option["is_default"],
+                            param_info_id=pi.id
+                        )
+                        db.session.add(pvo)
+                        db.session.flush()
+        db.session.commit()

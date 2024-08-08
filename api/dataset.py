@@ -152,7 +152,7 @@ def generate_file(dataset,dataset_download_part,param_value_list):
     app.config.from_object(settings.Configs)
     db.init_app(app)
     with app.app_context():
-        cmd_exe = "/ssd/dsk/JSI-Toolkit/build/tool/jsiconvert/jsiextract"
+        cmd_exe = "/home/buaa_hipo/JSI-toolkit/jsiextract"
         cmd_param = " ".join([" --" + param_value["name"] + " " + param_value["value"] for param_value in param_value_list])
         # real_cmd = cmd_exe + cmd_param
         real_cmd = 'echo "{cmd_param}" > temp/acmd.txt'.format(cmd_param=cmd_param)
@@ -163,7 +163,7 @@ def generate_file(dataset,dataset_download_part,param_value_list):
             print(result)
             dataset_download_part.type = DatasetDownloadPartType.generated
             dataset_download_part.generate_time = datetime.datetime.now()
-            dataset_download_part.download_url = "/root/Web/hipo_backend/temp/acmd.txt"#待定###########################################################
+            dataset_download_part.download_url = "temp/acmd.txt"#待定###########################################################
             db.session.add(dataset_download_part)
             db.session.commit()
             
@@ -322,4 +322,144 @@ def downloadDataset():
                             response = Response(send_file(), content_type='application/octet-stream')
                             response.headers["Content-disposition"] = 'attachment; filename=%s' % filename
                             return response
+        return convert(result)
+
+
+@bp.route('/getManageList', methods=["POST"])
+def getManageList():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    id = token_data['id']
+                    type = UserType(token_data['type'])
+                    if type != UserType.super_admin and type != UserType.admin:
+                        result = { "errno": ErrnoType.faliure, "message": "权限不足" }
+                    else:
+                        #order by update_time desc
+                        dataset_download_parts = DatasetDownloadPart.query.filter_by(
+                            ).order_by(DatasetDownloadPart.update_time.desc()).all()
+                        # dataset_download_parts = DatasetDownloadPart.query.filter_by(is_active=True,account_id=id).all()
+                        if dataset_download_parts == None:
+                            result = { "errno": ErrnoType.info, "message": "不存在数据下载项下载记录" }
+                        else:
+                            in_data = []
+                            for dataset_download_part in dataset_download_parts:
+                                param_value_list = []
+                                #只返回用户可编辑的参数
+                                for param_value in dataset_download_part.param_values:
+                                    if param_value.param_info.is_chosen_by_user:
+                                        param_value_list.append({
+                                            "name": param_value.param_info.name,
+                                            "value": param_value.value,
+                                        })
+                                in_data.append({
+                                    "id": dataset_download_part.id,
+                                    "title": dataset_download_part.dataset.title,
+                                    "abstract": dataset_download_part.dataset.abstract,
+                                    "type": dataset_download_part.type,
+                                    "apply_time": dataset_download_part.apply_time,
+                                    "generate_time": dataset_download_part.generate_time,
+                                    "is_active": dataset_download_part.is_active,
+                                    "param_value_list": param_value_list,
+                                })
+                            result = { "errno": ErrnoType.success, "message": "获取成功" }
+                            result["data"] = in_data
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return convert(result)
+    
+@bp.route('/updateInfo', methods=["POST"])
+def updateInfo():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    id = token_data['id']
+                    type = UserType(token_data['type'])
+                    if type != UserType.super_admin and type != UserType.admin:
+                        result = { "errno": ErrnoType.faliure, "message": "权限不足" }
+                    else:
+                        if(data['id'] == None or data['id'] == '' or data['is_active'] == None or data['is_active'] == '' or
+                           (data['is_active'] != True and data['is_active'] != False)):
+                            result = { "errno": ErrnoType.faliure, "message": "参数错误" }
+                        else:
+                            dataset_download_part_id = data['id']
+                            dataset_download_part = DatasetDownloadPart.query.filter_by(id=dataset_download_part_id).first()
+                            if dataset_download_part == None:
+                                result = { "errno": ErrnoType.info, "message": "数据下载项不存在" }
+                            else:
+                                dataset_download_part.is_active = data['is_active']
+                                db.session.commit()
+                                result = { "errno": ErrnoType.success, "message": "修改成功" }
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return convert(result)
+    
+# deleteDownloadPart
+@bp.route('/deleteDownloadPart', methods=["POST"])
+def deleteDownloadPart():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    dataset_download_part_id = data['id']
+                    dataset_download_part = DatasetDownloadPart.query.filter_by(id=dataset_download_part_id).first()
+                    if dataset_download_part == None:
+                        result = { "errno": ErrnoType.info, "message": "数据下载项不存在" }
+                    else:
+                        deleteList=[dataset_download_part]
+                        for param_value in dataset_download_part.param_values:
+                            deleteList.append(param_value)
+                        try:
+                            for item in deleteList:
+                                db.session.delete(item)
+                            db.session.commit()
+                            result = { "errno": ErrnoType.success, "message": "删除成功" }
+                        except:
+                            db.session.rollback()
+                            result = { "errno": ErrnoType.faliure, "message": "删除失败" }
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
         return convert(result)

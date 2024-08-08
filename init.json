@@ -20,6 +20,15 @@
         },
         {
             "id":3,
+            "email" : "admin002@buaa.edu.cn",
+            "password" : "12345678z",
+            "username" : "admin002",
+            "agencyName" : "管理员",
+            "type" : 2,
+            "register_id": 1
+        },
+        {
+            "id":4,
             "email" : "user001@buaa.edu.cn",
             "password" : "12345678z",
             "username" : "user001",
@@ -28,7 +37,7 @@
             "register_id": 1
         },
         {
-            "id":4,
+            "id":5,
             "email" : "user002@buaa.edu.cn",
             "password" : "12345678z",
             "username" : "user002",
@@ -52,22 +61,17 @@
                     "param_value_options":[
                         {
                             "name":"event_file_option1",
-                            "value":"event_file_option1",
+                            "value":"/home/buaa_hipo/web/event_file/group1",
                             "is_default":true
                         },
                         {
                             "name":"event_file_option2",
-                            "value":"event_file_option2",
+                            "value":"/home/buaa_hipo/web/event_file/group2",
                             "is_default":false
                         },
                         {
                             "name":"event_file_option3",
-                            "value":"event_file_option3",
-                            "is_default":false
-                        },
-                        {
-                            "name":"event_file_option4",
-                            "value":"event_file_option4",
+                            "value":"/home/buaa_hipo/web/event_file/group3",
                             "is_default":false
                         }
                     ]
@@ -75,7 +79,7 @@
                 {
                     "name":"line_info_dump",
                     "param_index":2,
-                    "is_chosen_by_user":true,
+                    "is_chosen_by_user":false,
                     "param_value_options":[
                         {
                             "name":"line_info_dump_option1",

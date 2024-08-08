@@ -122,6 +122,6 @@ def init_data():
 
 if __name__ == '__main__':
     # --port 52000 --host=0.0.0.0 --debug
-    app.run(port=52001, host='0.0.0.0') 
-    # app.run(port=52001, host='0.0.0.0', debug=True) 
+    # app.run(port=52001, host='0.0.0.0') 
+    app.run(port=52001, host='0.0.0.0', debug=True) 
     

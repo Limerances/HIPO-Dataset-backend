@@ -27,3 +27,19 @@ jsiextract
 1. 从邵康学长那里拿到了参数的列表如下，但是一共有哪些数据集需要下载呢
 2. 每个参数的取值范围是多少呢
 3. 每个参数的默认值是多少呢，提供的选项又是哪些
+
+7个参数
+
+--input /mnt/lustre-client/hipo/datasets/tools/trace/的下一级目录
+        /mnt/lustre-client/hipo/datasets/tools/trace/cg.F.x-65536-sc.jsirun.bt20.pmu-0320_08-1
+        /mnt/lustre-client/hipo/datasets/tools/trace/sp.F.x-119716-sc.jsirun.bt20.pmu.ss-0320_08-1
+
+--output NO /mnt/lustre-client/hipo/datasets/tools/download_trace
+        /mnt/lustre/buaa_hipo  + /downloadpartID/
+
+--line_info_dump /mnt/lustre/buaa_hipo  + /downloadpartID/dwarf
+
+--event_file 某三个预选文件
+--time_offset  default:0
+--interval_length default:-1
+--number_of_events default:-1

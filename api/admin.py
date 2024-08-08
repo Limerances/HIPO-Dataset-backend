@@ -31,7 +31,7 @@ def getUserList():
                     if need_type.value >= type.value:
                         result = {"errno": ErrnoType.faliure, "message": "权限不足"}
                     else:
-                        account = Account.query.filter_by(is_active=True,type=need_type).all()
+                        account = Account.query.filter_by(type=need_type).all()
                         in_data = []
                         for i in account:
                             in_data.append({
@@ -57,7 +57,6 @@ def getLogs():
         data = request.json
         header = request.headers
         token = header.get("Token")
-
         if token == None:
             result = {"errno": ErrnoType.login_failure, "message": "未登录"}
         else:
@@ -72,7 +71,7 @@ def getLogs():
                     token_data = get_info(token)
                     id = token_data['id']
                     type = UserType(token_data['type'])
-                    if type != UserType.super_admin or type != UserType.admin:
+                    if type != UserType.super_admin and type != UserType.admin:
                         result = {"errno": ErrnoType.faliure, "message": "权限不足"}
                     else:
                         #order by update_time desc
@@ -87,10 +86,11 @@ def getLogs():
                             for dataset_download_part in dataset_download_parts:
                                 param_value_list = []
                                 for param_value in dataset_download_part.param_values:
-                                    param_value_list.append({
-                                        "name": param_value.param_info.name,
-                                        "value": param_value.value,
-                                    })
+                                    if(param_value.param_info.is_chosen_by_user == True):
+                                        param_value_list.append({
+                                            "name": param_value.param_info.name,
+                                            "value": param_value.value,
+                                        })
                                 account_info = {
                                     "id": dataset_download_part.account.id,
                                     "username": dataset_download_part.account.username,
@@ -107,6 +107,8 @@ def getLogs():
                                     "type": dataset_download_part.type,
                                     "apply_time": dataset_download_part.apply_time,
                                     "generate_time": dataset_download_part.generate_time,
+                                    "username": dataset_download_part.account.username,
+                                    "agencyName": dataset_download_part.account.agencyName,
                                     "param_value_list": param_value_list,
                                     "user_info": account_info,
                                 })
@@ -143,7 +145,7 @@ def disableUser():
                     if account == None:
                         result = {"errno": ErrnoType.faliure, "message": "用户不存在"}
                     else:
-                        if type != UserType.super_admin or type != UserType.admin:
+                        if type.value <= account.type.value:
                             result = {"errno": ErrnoType.faliure, "message": "权限不足"}
                         else:
                             account.is_active = False
@@ -180,7 +182,7 @@ def enableUser():
                     if account == None:
                         result = {"errno": ErrnoType.faliure, "message": "用户不存在"}
                     else:
-                        if type != UserType.super_admin or type != UserType.admin:
+                        if type.value <= account.type.value:
                             result = {"errno": ErrnoType.faliure, "message": "权限不足"}
                         else:
                             if account.is_active == True:
@@ -189,6 +191,99 @@ def enableUser():
                                 account.is_active = True
                                 db.session.commit()
                                 result = {"errno": ErrnoType.success, "message": "启用成功"}
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return convert(result)
+    
+    
+@bp.route('/updateInfo', methods=["POST"])
+def updateInfo():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        update_id = data['id']
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    id = token_data['id']
+                    type = UserType(token_data['type'])
+                    account = Account.query.filter_by(id=update_id).first()
+                    if account == None:
+                        result = {"errno": ErrnoType.faliure, "message": "用户不存在"}
+                    else:
+                        if type.value <= account.type.value:
+                            result = {"errno": ErrnoType.faliure, "message": "权限不足"}
+                        else:
+                            if(data['username'] == None or data['username'] == "" or data['agencyName'] == None or data['agencyName'] == "" or\
+                                data['is_active'] == None or (data['is_active'] != True and data['is_active'] != False)):
+                                result = {"errno": ErrnoType.faliure, "message": "参数错误"}
+                            else:
+                                account.username = data['username']
+                                account.agencyName = data['agencyName']
+                                account.is_active = data['is_active']
+                                db.session.commit()
+                                result = {"errno": ErrnoType.success, "message": "更新成功"}
+        return convert(result)
+    else:
+        result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
+        return convert(result)
+
+# 请确认是否要删除用户，指定用户的下载项和相关参数也将一并移除。
+@bp.route('/deleteUser', methods=["POST"])
+def deleteUser():
+    if request.method == 'POST':
+        data = request.json
+        header = request.headers
+        token = header.get("Token")
+
+        delete_id = data['id']
+        if token == None:
+            result = {"errno": ErrnoType.login_failure, "message": "未登录"}
+        else:
+            id, valid = convert_int(header.get("Uid"))
+            if not valid:
+                result = { "errno": ErrnoType.login_failure, "message": "登录失效(ID)" }
+            else:
+                valid = check_token(id,token)
+                if not valid:
+                    result = {"errno": ErrnoType.login_failure, "message": "登录失效"}
+                else:
+                    token_data = get_info(token)
+                    id = token_data['id']
+                    type = UserType(token_data['type'])
+                    account = Account.query.filter_by(id=delete_id).first()
+                    if account == None:
+                        result = {"errno": ErrnoType.faliure, "message": "用户不存在"}
+                    else:
+                        if type.value != UserType.super_admin.value:
+                            result = {"errno": ErrnoType.faliure, "message": "权限不足"}
+                        else:
+                            deleteList = [account]
+                            dataset_download_parts = DatasetDownloadPart.query.filter_by(account_id=delete_id).all()
+                            deleteList.extend(dataset_download_parts)
+                            for dataset_download_part in dataset_download_parts:
+                                param_values = dataset_download_part.param_values
+                                deleteList.extend(param_values)
+                            try:
+                                for i in deleteList:
+                                    db.session.delete(i)
+                                db.session.commit()
+                                result = {"errno": ErrnoType.success, "message": "删除成功"}
+                            except:
+                                db.session.rollback()
+                                result = {"errno": ErrnoType.faliure, "message": "删除失败"}
         return convert(result)
     else:
         result = {"errno": ErrnoType.faliure, "message": "前端炸了"}
